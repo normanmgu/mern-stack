@@ -1,34 +1,73 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import React, { useEffect, useState } from "react";
+import {Link} from "react-router-dom";
+import { deleteDeck } from "./api/deleteDeck";
+import "./App.css";
+
+type TDeck = {
+  title: string,
+  _id: string
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [decks, setDecks] = useState<TDeck[]>([]);
+  const [title, setTitle] = useState<string>("");
+
+  const handleCreateDeck = async (e: React.FormEvent) =>{
+    e.preventDefault();
+    const response = await fetch("http://localhost:3000/decks", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    const deck = await response.json();
+    setDecks([...decks, deck]);
+    setTitle("");
+  }
+
+  const handleDeckDelete = async (deckId: string) =>{
+    deleteDeck(deckId);
+    setDecks(decks.filter(deck => deck._id !== deckId));
+  }
+
+  useEffect(() =>{
+    (async () =>{
+      const response = await fetch("http://localhost:3000/decks");
+      const newDecks = await response.json();
+      setDecks(newDecks);
+    })()
+  },[])
 
   return (
     <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="decks">
+        {
+          decks.map(deck => {
+            return (
+            <li key={deck._id}>
+              <button onClick={() => handleDeckDelete(deck._id)}>X</button>
+              <Link to={`/decks/${deck._id}`}>{deck.title}</Link>
+            </li>
+            )
+          })
+        }
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <form onSubmit={handleCreateDeck}>
+        <label htmlFor="deck-title">Deck Title</label>
+        <input
+          id="deck-title"
+          value={title}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setTitle(e.target.value)
+          }}
+        />
+        <button>Create Deck</button>
+      </form>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
